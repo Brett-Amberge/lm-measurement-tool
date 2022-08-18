@@ -1,3 +1,3 @@
-# Simple UI Extension Template
+# Create Cutplane Tool
 
-The simplest python extension example. Use it as a starting point for your extensions.
+Extension for Omniverse Create for using a cutplane to view interiors of meshes, models, and point clouds.
