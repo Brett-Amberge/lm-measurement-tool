@@ -1,7 +1,8 @@
 import omni.ext
 import omni.ui as ui
 import omni.kit.commands
-from pxr import Sdf, Gf
+from pxr import Usd, UsdGeom, Sdf, Gf
+import usds
 
 # Functions and vars are available to other extension as usual in python: `example.python_ext.some_public_function(x)`
 def some_public_function(x: int):
@@ -22,19 +23,26 @@ class MyExtension(omni.ext.IExt):
 
         def spawnPlane(isOn, axis):
             if isOn:
-                omni.kit.commands.execute('CreateMeshPrimWithDefaultXform', prim_type='Plane')
+                omni.kit.commands.execute('CreateMeshPrim', prim_type="Plane")
                 omni.kit.commands.execute('MovePrims',
 	                paths_to_move={'/World/Plane': '/World/' + axis + 'Plane'})
             else:
                 omni.kit.commands.execute('DeletePrims', paths=['/World/' + axis + 'Plane'])
-                
+
+        def movePlane(value, axis):
+            transformVecs = {"X": Gf.Vec3d(value*100, 0.0, 0.0), "Y": Gf.Vec3d(0.0, value*100, 0.0), "Z": Gf.Vec3d(0.0, 0.0, value*100)}
+            omni.kit.commands.execute('TransformPrimSRT',
+	            path=Sdf.Path('/World/' + axis + 'Plane'),
+	            new_translation=transformVecs[axis],
+	            old_translation=Gf.Vec3d(0.0, 0.0, 0.0))
+
         def plane_stack(lab, axis):
             with ui.HStack():
                 label = ui.Label(lab)
                 box = ui.CheckBox()
                 box.model.add_value_changed_fn(lambda x: spawnPlane(box.model.get_value_as_bool(), axis))
-                field = ui.MultiFloatDragField(0.0)
-                field.model.add_item_changed_fn(lambda x,y: movePlane(box.model.get_value_as_bool(), axis))
+                val = ui.FloatDrag()
+                val.model.add_end_edit_fn(lambda x: movePlane(val.model.get_value_as_float(), axis))
 
         with self._window.frame:
             with ui.VStack():
