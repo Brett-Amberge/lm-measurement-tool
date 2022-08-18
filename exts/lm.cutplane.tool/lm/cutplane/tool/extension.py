@@ -22,19 +22,28 @@ class MyExtension(omni.ext.IExt):
         self._window = ui.Window("Cut plane tool", width=300, height=300)
 
         def spawnPlane(isOn, axis):
+            transformVecs = {"Z": Gf.Vec3d(90, 0.0, 0.0), "Y": Gf.Vec3d(0.0, 0.0, 0.0), "X": Gf.Vec3d(0.0, 0.0, 90)}
             if isOn:
-                omni.kit.commands.execute('CreateMeshPrim', prim_type="Plane")
+                omni.kit.commands.execute('CreateMeshPrim', prim_type="Plane",
+                    attributes={})
                 omni.kit.commands.execute('MovePrims',
 	                paths_to_move={'/World/Plane': '/World/' + axis + 'Plane'})
+                omni.kit.commands.execute('TransformPrimSRT',
+	                path=Sdf.Path('/World/' + axis + 'Plane'),
+	                new_rotation_euler=transformVecs[axis],
+	                old_rotation_euler=Gf.Vec3d(0.0, 0.0, 0.0))
             else:
                 omni.kit.commands.execute('DeletePrims', paths=['/World/' + axis + 'Plane'])
 
-        def movePlane(value, axis):
-            transformVecs = {"X": Gf.Vec3d(value*100, 0.0, 0.0), "Y": Gf.Vec3d(0.0, value*100, 0.0), "Z": Gf.Vec3d(0.0, 0.0, value*100)}
-            omni.kit.commands.execute('TransformPrimSRT',
-	            path=Sdf.Path('/World/' + axis + 'Plane'),
-	            new_translation=transformVecs[axis],
-	            old_translation=Gf.Vec3d(0.0, 0.0, 0.0))
+        def movePlane(isOn, value, axis):
+            if isOn:
+                transformVecs = {"X": Gf.Vec3d(value*100, 0.0, 0.0), "Y": Gf.Vec3d(0.0, value*100, 0.0), "Z": Gf.Vec3d(0.0, 0.0, value*100)}
+                omni.kit.commands.execute('TransformPrimSRT',
+	                path=Sdf.Path('/World/' + axis + 'Plane'),
+	                new_translation=transformVecs[axis],
+	                old_translation=Gf.Vec3d(0.0, 0.0, 0.0))
+            else:
+                print('Activate cutplane first')
 
         def plane_stack(lab, axis):
             with ui.HStack():
@@ -42,7 +51,8 @@ class MyExtension(omni.ext.IExt):
                 box = ui.CheckBox()
                 box.model.add_value_changed_fn(lambda x: spawnPlane(box.model.get_value_as_bool(), axis))
                 val = ui.FloatDrag()
-                val.model.add_end_edit_fn(lambda x: movePlane(val.model.get_value_as_float(), axis))
+                val.model.add_end_edit_fn(lambda x: movePlane(box.model.get_value_as_bool(),
+                    val.model.get_value_as_float(), axis))
 
         with self._window.frame:
             with ui.VStack():
