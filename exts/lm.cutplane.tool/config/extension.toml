@@ -1,8 +1,6 @@
 [package]
-# Semantic Versionning is used: https://semver.org/
 version = "1.0.0"
 
-# The title and description fields are primarily for displaying extension info in UI
 title = "Create Extension Cutplane"
 description = "Tool for adding cutplanes to create for view interiors of meshes, models, and pointclouds."
 
@@ -12,7 +10,6 @@ readme  = "docs/README.md"
 # URL of the extension source repository.
 repository = "https://github.com/Brett-Amberge/lm-cutplane-tool"
 
-# One of categories for UI.
 category = "Create"
 
 # Keywords for the extension
@@ -29,7 +26,7 @@ preview_image = ""
 [dependencies]
 "omni.kit.uiapp" = {}
 
-# Main python module this extension provides, it will be publicly available as "import omni.hello.world".
+# Main python module this extension provides
 [[python.module]]
 name = "lm.cutplane.tool"
 
