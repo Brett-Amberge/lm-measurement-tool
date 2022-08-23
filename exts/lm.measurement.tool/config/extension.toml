@@ -1,0 +1,22 @@
+# Icon to show in the extension manager
+icon = ""
+
+# Preview image to show in the extension manager
+preview_image = ""
+
+# Addiditional dependencies
+[dependencies]
+"omni.kit.uiapp" = {}
+"omni.usd" = {}
+"omni.kit.viewport.utility" = {}
+
+# Main python module this extension provides
+[[python.module]]
+name = "lm.measurement.tool"
+
+# Extra dependencies only to be used during test runs
+[[test]]
+dependencies = [
+    "omni.kit.ui_test",
+    "omni.kit.viewport.utility"
+]
