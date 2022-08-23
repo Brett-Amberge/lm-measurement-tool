@@ -33,7 +33,7 @@ class RulerModel(sc.AbstractManipulatorModel):
         x1,y1,z1 = self.startpoint.value
         x2,y2,z2 = self.endpoint.value
 
-        distance = sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
+        distance = round(sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2), 3)
 
         self.set_floats(self.dist, distance)
     
