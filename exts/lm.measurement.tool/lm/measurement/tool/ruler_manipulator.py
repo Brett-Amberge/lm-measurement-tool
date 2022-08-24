@@ -22,7 +22,7 @@ class Manager(sc.GestureManager):
         super().__init__()
 
     def should_prevent(self, gesture, preventer):
-        if preventer._name == "Double":
+        if preventer._name == "Double": # Double click always takes precedence
             return True
 
 mgr = Manager()
@@ -54,6 +54,7 @@ class _DoubleClickGesture(sc.DoubleClickGesture):
         self._manager = mgr
 
     def on_ended(self):
+        # Clear the list of points and remove the lines on double click
         model = self.__manipulator.model
         model.clear_points()
         self.__manipulator.invalidate()
@@ -69,31 +70,32 @@ class RulerManipulator(sc.Manipulator):
         if not self.model:
             self.model = RulerModel()
 
-        # Set the gesture on the screen
+        # Set the gesture(s) on the screen
         sc.Screen(gestures=self.gestures or [_ClickGesture(weakref.proxy(self)), _DoubleClickGesture(weakref.proxy(self))])
 
         self._draw_shape()
 
-        # Position the distance label above the center of the line
-        if self.model.dist.value > 0.0:
-            position = self.model.get_midpoint(self.model.points[0], self.model.points[1])
+        points = self.model.points
+        for i in range(len(points) - 1):
+        # Position the distance labels above the center of the lines
+            position = self.model.get_midpoint(points[i], points[i+1])
             with sc.Transform(transform=sc.Matrix44.get_translation_matrix(*position)):
                 with sc.Transform(look_at=sc.Transform.LookAt.CAMERA):
                     with sc.Transform(scale_to=sc.Space.SCREEN):
                         with sc.Transform(transform=sc.Matrix44.get_translation_matrix(0,5,0)):
-                            sc.Label(f"{self.model.dist.value}", alignment=ui.Alignment.CENTER_BOTTOM, size=20)
+                            sc.Label(f"{self.model.calculate_dist(points[i], points[i+1])}", alignment=ui.Alignment.CENTER_BOTTOM, size=20)
         
 
     def on_model_updated(self, item):
         # Update the line based on the model
-        if item == self.model.startpoint or item == self.model.endpoint:
+        if self.model.points:
             self._draw_shape()
 
     def _draw_shape(self):
         # Draw the line based on the start and end point stored in the model
         if not self.model:
             return
-        if self.model.startpoint and self.model.endpoint:
+        if self.model.points:
             i = 0
             points = self.model.points
             while i < (len(points) - 1):
@@ -101,6 +103,7 @@ class RulerManipulator(sc.Manipulator):
                 i += 1
 
     def set_tool(self):
+        # Toggle the tool on or off
         if self._tool.value == 0:
             self._tool = ToolType.RULER
         else:
