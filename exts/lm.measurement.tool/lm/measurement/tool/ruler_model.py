@@ -26,6 +26,14 @@ class RulerModel(sc.AbstractManipulatorModel):
         self.startpoint = RulerModel.PositionItem()
         self.endpoint = RulerModel.PositionItem()
         self.dist = RulerModel.FloatItem()
+        self.points = []
+
+    def add_point(self, point):
+        self.points.append(point)
+
+    def clear_points(self):
+        self.points.clear()
+        self.set_floats(self.dist, 0)
 
     def get_as_floats(self, item):
         # Return the value of the given item
@@ -36,19 +44,19 @@ class RulerModel(sc.AbstractManipulatorModel):
         item.value = value
         self._item_changed(item) # Tells the manipulator the model changed
 
-    def calculate_dist(self):
+    def calculate_dist(self, startpoint, endpoint):
         # Find the distance between the two points
-        x1,y1,z1 = self.startpoint.value
-        x2,y2,z2 = self.endpoint.value
+        x1,y1,z1 = startpoint
+        x2,y2,z2 = endpoint
 
         distance = round(sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2), 3)
 
         self.set_floats(self.dist, distance)
     
-    def get_midpoint(self):
+    def get_midpoint(self, startpoint, endpoint):
         # Find the middle of the line
-        x1,y1,z1 = self.startpoint.value
-        x2,y2,z2 = self.endpoint.value
+        x1,y1,z1 = startpoint
+        x2,y2,z2 = endpoint
 
         midpoint = [(x2+x1)/2, (y2+y1)/2, (z2+z1)/2]
         #print(str(self.startpoint.value) +  " " + str(midpoint) + " " + str(self.endpoint.value))
