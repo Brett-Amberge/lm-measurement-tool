@@ -36,9 +36,20 @@ class RulerManipulator(sc.Manipulator):
         if not self.model:
             self.model = RulerModel()
 
-        self._draw_shape()
         # Set the gesture on the screen
         sc.Screen(gestures=self.gestures or [_ClickGesture(weakref.proxy(self))])
+
+        self._draw_shape()
+
+        # Position the distance label above the center of the line
+        if self.model.dist.value > 0.0:
+            position = self.model.get_midpoint()
+            with sc.Transform(transform=sc.Matrix44.get_translation_matrix(*position)):
+                with sc.Transform(look_at=sc.Transform.LookAt.CAMERA):
+                    with sc.Transform(scale_to=sc.Space.SCREEN):
+                        with sc.Transform(transform=sc.Matrix44.get_translation_matrix(0,5,0)):
+                            sc.Label(f"{self.model.dist.value}", alignment=ui.Alignment.CENTER_BOTTOM, size=30)
+        
 
     def on_model_updated(self, item):
         # Update the line based on the model
@@ -51,8 +62,5 @@ class RulerManipulator(sc.Manipulator):
             return
         if self.model.startpoint and self.model.endpoint:
             sc.Line(self.model.startpoint.value, self.model.endpoint.value)
-            if self.model.dist.value > 0.0:
-                # TODO Align the distance label just above the line
-                sc.Label(f"{self.model.dist.value}", alignment=ui.Alignment.CENTER_BOTTOM)
 
         
