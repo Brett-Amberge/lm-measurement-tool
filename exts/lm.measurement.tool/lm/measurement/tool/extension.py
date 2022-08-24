@@ -1,3 +1,7 @@
+'''
+Main extension file
+'''
+
 import omni.ext 
 import carb
 from omni.kit.viewport.utility import get_active_viewport_window

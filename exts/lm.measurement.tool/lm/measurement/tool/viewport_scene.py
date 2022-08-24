@@ -1,3 +1,7 @@
+'''
+Sets up the viewport and window
+'''
+
 from omni.ui import scene as sc
 
 # Import model and manipulator
@@ -20,6 +24,7 @@ class ViewportScene:
             
             self._viewport_window.viewport_api.add_scene_view(self._scene_view)
         
+    # Functions for cleaning up the viewport
     def _del_(self):
         self.destroy()
 
@@ -27,7 +32,7 @@ class ViewportScene:
         if self._scene_view:
             # Empty the SceneView of any elements it may have
             self._scene_view.scene.clear()
-            # Be a good citizen, and un-register the SceneView from Viewport updates
+            # Un-register the SceneView from Viewport updates
             if self._viewport_window:
                 self._viewport_window.viewport_api.remove_scene_view(self._scene_view)
         # Remove our references to these objects

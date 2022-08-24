@@ -1,3 +1,7 @@
+'''
+Stores details about the line
+'''
+
 from math import sqrt
 from omni.ui import scene as sc
 from pxr import Usd, UsdGeom, Tf, Gf

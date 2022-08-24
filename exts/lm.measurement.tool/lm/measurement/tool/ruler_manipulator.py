@@ -1,3 +1,7 @@
+'''
+Update the view and model when user input occurs
+'''
+
 import weakref
 from omni.ui import scene as sc
 from omni.ui import color as cl
@@ -48,7 +52,7 @@ class RulerManipulator(sc.Manipulator):
                 with sc.Transform(look_at=sc.Transform.LookAt.CAMERA):
                     with sc.Transform(scale_to=sc.Space.SCREEN):
                         with sc.Transform(transform=sc.Matrix44.get_translation_matrix(0,5,0)):
-                            sc.Label(f"{self.model.dist.value}", alignment=ui.Alignment.CENTER_BOTTOM, size=30)
+                            sc.Label(f"{self.model.dist.value}", alignment=ui.Alignment.CENTER_BOTTOM, size=20)
         
 
     def on_model_updated(self, item):
