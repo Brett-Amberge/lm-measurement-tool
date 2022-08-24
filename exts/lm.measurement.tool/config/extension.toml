@@ -1,5 +1,5 @@
 # Icon to show in the extension manager
-icon = ""
+icon = "./icons/ruler_icon.png"
 
 # Preview image to show in the extension manager
 preview_image = ""
