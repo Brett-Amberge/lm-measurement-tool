@@ -10,20 +10,21 @@ from .ruler_model import RulerModel
 class _ClickGesture(sc.ClickGesture):
     def __init__(self, manipulator: sc.Manipulator, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.start = False
+        self._start = False
         self.__manipulator = manipulator
 
     def on_ended(self):
-        self.start = not self.start
+        # Update the line whenever a click happens
+        self._start = not self._start
         model = self.__manipulator.model
         point = self.sender.gesture_payload.ray_closest_point
 
-        if self.start:
+        if self._start:
             model.set_floats(model.startpoint, point)
         else:
             model.set_floats(model.endpoint, point)
             model.calculate_dist()
-            self.__manipulator.invalidate()
+            self.__manipulator.invalidate() # Redraw the line
 
 class RulerManipulator(sc.Manipulator):
 
@@ -36,17 +37,22 @@ class RulerManipulator(sc.Manipulator):
             self.model = RulerModel()
 
         self._draw_shape()
-
+        # Set the gesture on the screen
         sc.Screen(gestures=self.gestures or [_ClickGesture(weakref.proxy(self))])
 
     def on_model_updated(self, item):
+        # Update the line based on the model
         if item == self.model.startpoint or item == self.model.endpoint:
             self._draw_shape()
 
     def _draw_shape(self):
+        # Draw the line based on the start and end point stored in the model
         if not self.model:
             return
         if self.model.startpoint and self.model.endpoint:
             sc.Line(self.model.startpoint.value, self.model.endpoint.value)
-            sc.Label(str(self.model.dist.value), alignment=ui.Alignment.RIGHT_BOTTOM, color=cl.white, size=50)
+            if self.model.dist.value > 0.0:
+                # TODO Align the distance label just above the line
+                sc.Label(f"{self.model.dist.value}", alignment=ui.Alignment.CENTER_BOTTOM)
+
         
