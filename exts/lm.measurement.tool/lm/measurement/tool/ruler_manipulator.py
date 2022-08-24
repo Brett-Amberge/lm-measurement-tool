@@ -8,33 +8,50 @@ from omni.ui import color as cl
 import omni.kit
 import omni.kit.commands
 import omni.ui as ui
+from enum import Enum
 
 from .ruler_model import RulerModel
+
+class ToolType(Enum):
+    DISABLED = 0
+    RULER = 1
+    ANGLE = 2
 
 class _ClickGesture(sc.ClickGesture):
     def __init__(self, manipulator: sc.Manipulator, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._start = False
         self.__manipulator = manipulator
+        self._manager = Manager()
 
     def on_ended(self):
         # Update the line whenever a click happens
-        self._start = not self._start
-        model = self.__manipulator.model
-        point = self.sender.gesture_payload.ray_closest_point
+        if self.__manipulator._tool.value > 0:
+            self._start = not self._start
+            model = self.__manipulator.model
+            point = self.sender.gesture_payload.ray_closest_point
 
-        if self._start:
-            model.set_floats(model.startpoint, point)
-        else:
-            model.set_floats(model.endpoint, point)
-            model.calculate_dist()
-            self.__manipulator.invalidate() # Redraw the line
+            if self._start:
+                model.set_floats(model.startpoint, point)
+            else:
+                model.set_floats(model.endpoint, point)
+                model.calculate_dist()
+                self.__manipulator.invalidate() # Redraw the line
+
+class Manager(sc.GestureManager):
+    def __init__(self):
+        super().__init__()
+
+    def should_prevent(self, gesture, preventer):
+        if preventer.__manipulator._tool.value > 0:
+            return True
 
 class RulerManipulator(sc.Manipulator):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.gestures = []
+        self._tool = ToolType.DISABLED
 
     def on_build(self):
         if not self.model:
@@ -66,5 +83,11 @@ class RulerManipulator(sc.Manipulator):
             return
         if self.model.startpoint and self.model.endpoint:
             sc.Line(self.model.startpoint.value, self.model.endpoint.value)
+
+    def set_tool(self):
+        if self._tool.value == 0:
+            self._tool = ToolType.RULER
+        else:
+            self._tool = ToolType.DISABLED
 
         
