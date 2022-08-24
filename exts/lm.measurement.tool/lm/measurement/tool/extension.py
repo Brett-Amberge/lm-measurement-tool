@@ -2,6 +2,7 @@
 Main extension file
 '''
 
+import os
 import omni.ext 
 import carb
 import omni.kit.window.toolbar as tb
@@ -19,6 +20,12 @@ class MeasurementToolGroup(WidgetGroup):
     def clean(self):
         super().clean()
 
+    def get_style(self):
+        style = {
+            "Button.Image::ruler_button": {"image_url": f"{self._icon_path}/ruler_icon.png"},
+        }
+        return style
+
     def create(self, default_size):
         def on_clicked():
             toolbar = tb.get_instance()
@@ -34,7 +41,7 @@ class MeasurementToolGroup(WidgetGroup):
             mouse_pressed_fn=lambda x, y, b, _: on_clicked(),
         )
 
-        return {"ruler": button1}
+        return {"ruler_button": button1}
 
 class MeasurementTool(omni.ext.IExt):
 
@@ -44,9 +51,12 @@ class MeasurementTool(omni.ext.IExt):
     def on_startup(self, ext_id):
         print("[lm.measurement.tool] Measurement tool startup")
 
+        ext_path = omni.kit.app.get_app().get_extension_manager().get_extension_path(ext_id)
+        icon_path = os.path.join(ext_path, "icons")
+
         # Set up the toolbar
         self._toolbar = tb.get_instance()
-        self._widget = MeasurementToolGroup(icon_path="")
+        self._widget = MeasurementToolGroup(icon_path)
         self._toolbar.add_widget(self._widget, -100)
 
         # Get the active Viewport
@@ -65,8 +75,6 @@ class MeasurementTool(omni.ext.IExt):
         self._toolbar.remove_widget(self._widget)
         self._widget.clean()
         self._widget = None
-        self._widget_simple.clean()
-        self._widget_simple = None
         self._toolbar = None
 
         if self._viewport_scene:
