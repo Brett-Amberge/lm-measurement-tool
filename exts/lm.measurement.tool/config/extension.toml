@@ -9,6 +9,7 @@ preview_image = ""
 "omni.kit.uiapp" = {}
 "omni.usd" = {}
 "omni.kit.viewport.utility" = {}
+"omni.kit.window.toolbar" = {}
 
 # Main python module this extension provides
 [[python.module]]
