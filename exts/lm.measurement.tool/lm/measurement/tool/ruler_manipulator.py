@@ -37,7 +37,7 @@ class _ClickGesture(sc.ClickGesture):
 
     def on_ended(self):
         # Update the line whenever a click happens
-        if self.__manipulator._tool.value > 0: # Check if the ruler tool is enabled
+        if self.__manipulator._tool.value == 1: # Check if the ruler tool is enabled
             self._start = not self._start
             model = self.__manipulator.model
             point = self.sender.gesture_payload.ray_closest_point
@@ -55,9 +55,10 @@ class _DoubleClickGesture(sc.DoubleClickGesture):
 
     def on_ended(self):
         # Clear the list of points and remove the lines on double click
-        model = self.__manipulator.model
-        model.clear_points()
-        self.__manipulator.invalidate()
+        if self.__manipulator._tool.value == 1: # Check if the ruler tool is enabled
+            model = self.__manipulator.model
+            model.clear_points()
+            self.__manipulator.invalidate()
 
 class RulerManipulator(sc.Manipulator):
 
@@ -84,7 +85,6 @@ class RulerManipulator(sc.Manipulator):
                     with sc.Transform(scale_to=sc.Space.SCREEN):
                         with sc.Transform(transform=sc.Matrix44.get_translation_matrix(0,5,0)):
                             sc.Label(f"{self.model.calculate_dist(points[i], points[i+1])}", alignment=ui.Alignment.CENTER_BOTTOM, size=20)
-        
 
     def on_model_updated(self, item):
         # Update the line based on the model
@@ -96,17 +96,18 @@ class RulerManipulator(sc.Manipulator):
         if not self.model:
             return
         if self.model.points:
-            i = 0
             points = self.model.points
-            while i < (len(points) - 1):
+            for i in range(len(points) - 1):
                 sc.Line(points[i], points[i+1])
-                i += 1
 
-    def set_tool(self):
+    def set_tool(self, tool):
         # Toggle the tool on or off
-        if self._tool.value == 0:
-            self._tool = ToolType.RULER
-        else:
+        if self._tool.value > 0:
             self._tool = ToolType.DISABLED
+        else:
+            if tool == "RULER":
+                self._tool = ToolType.RULER
+            if tool == "ANGLE":
+                self._tool = ToolType.ANGLE
 
         

@@ -2,6 +2,7 @@
 Sets up the viewport and window
 '''
 
+from email.policy import default
 import os
 import omni.ui
 from omni.ui import scene as sc
@@ -23,22 +24,33 @@ class MeasurementToolGroup(WidgetGroup):
     def get_style(self):
         style = {
             "Button.Image::ruler_button": {"image_url": f"{self._icon_path}/ruler_icon.png"},
+            "Button.Image::compass_button": {"image_url": f"{self._icon_path}/compass_icon.png"},
         }
         return style
 
     def create(self, default_size):
-        def on_clicked():
-            self._manipulator.set_tool()
+        def on_clicked(btn):
+            self._manipulator.set_tool(btn)
 
         button1 = omni.ui.ToolButton(
             name="ruler_button",
-            tooltip="Enable measurement tool",
+            tooltip="Enable ruler tool",
             width=default_size,
             height=default_size,
-            mouse_pressed_fn=lambda x, y, b, _: on_clicked(),
+            checked=False,
+            mouse_pressed_fn=lambda x, y, b, _: on_clicked("RULER"),
         )
 
-        return {"ruler_button": button1}
+        button2 = omni.ui.ToolButton(
+            name="compass_button",
+            tooltip="Enable compass tool",
+            width=default_size,
+            height=default_size,
+            checked=False,
+            mouse_pressed_fn=lambda x, a, b, _: on_clicked("ANGLE"),
+        )
+
+        return {"ruler_button": button1, "compass_button": button2}
 
 class ViewportScene:
 
