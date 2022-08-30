@@ -64,7 +64,7 @@ class ViewportScene:
             self._scene_view = sc.SceneView()
             # Add the manipulator and model to the scene
             with self._scene_view.scene:
-                self._manipulator = RulerManipulator(model=RulerModel())
+                self._manipulator = RulerManipulator(model=RulerModel(), scene_view=self._scene_view)
             
             self._viewport_window.viewport_api.add_scene_view(self._scene_view)
         
