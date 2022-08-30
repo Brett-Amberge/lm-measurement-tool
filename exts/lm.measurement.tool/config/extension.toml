@@ -10,6 +10,8 @@ preview_image = ""
 "omni.usd" = {}
 "omni.kit.viewport.utility" = {}
 "omni.kit.window.toolbar" = {}
+"omni.paint.system.core" = {}
+"omni.kit.mesh.raycast" = {}
 
 # Main python module this extension provides
 [[python.module]]
