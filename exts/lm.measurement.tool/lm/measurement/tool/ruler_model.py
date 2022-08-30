@@ -4,9 +4,6 @@ Stores details about the line
 
 from math import sqrt
 from omni.ui import scene as sc
-from pxr import Usd, UsdGeom, Tf, Gf
-import omni.usd
-import carb
 
 class RulerModel(sc.AbstractManipulatorModel):
 
@@ -35,7 +32,7 @@ class RulerModel(sc.AbstractManipulatorModel):
         x2,y2,z2 = endpoint
 
         midpoint = [(x2+x1)/2, (y2+y1)/2, (z2+z1)/2]
-        #print(str(self.startpoint.value) +  " " + str(midpoint) + " " + str(self.endpoint.value))
+
         return midpoint
 
         
