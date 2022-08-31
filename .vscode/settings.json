@@ -326,6 +326,8 @@
         "${workspaceFolder}/app/kit/extscore/omni.usd.schema.audio",
         "${workspaceFolder}/app/kit/extscore/omni.usd.schema.physics",
         "${workspaceFolder}/app/kit/extscore/omni.usd.schema.semantics",
+        "./app/kit/exts/omni.kit.viewport.utility",
+        "./app/extscache/omni.kit.mesh.raycast-103.7.4+103.1.wx64.r.cp37"
     ],
 
     // Python & Pylance Setup
