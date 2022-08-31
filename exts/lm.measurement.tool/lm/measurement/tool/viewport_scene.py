@@ -2,11 +2,9 @@
 Sets up the viewport and window
 '''
 
-from email.policy import default
-import os
 import omni.ui
 from omni.ui import scene as sc
-from omni.kit.window.toolbar import SimpleToolButton, WidgetGroup
+from omni.kit.window.toolbar import WidgetGroup
 
 # Import model and manipulator
 from .ruler_model import RulerModel
@@ -51,6 +49,7 @@ class MeasurementToolGroup(WidgetGroup):
         )
 
         return {"ruler_button": button1, "compass_button": button2}
+
 
 class ViewportScene:
 

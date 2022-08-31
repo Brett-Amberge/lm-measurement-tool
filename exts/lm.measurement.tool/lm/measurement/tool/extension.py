@@ -7,7 +7,6 @@ import omni.ext
 import carb
 import omni.kit.window.toolbar as tb
 from omni.kit.viewport.utility import get_active_viewport_window
-from carb.input import KeyboardInput as Key
 
 from .viewport_scene import ViewportScene, MeasurementToolGroup
 
