@@ -6,13 +6,11 @@ import weakref
 from omni.ui import scene as sc
 from omni.ui import color as cl
 import omni.kit
-import omni.kit.commands
 import omni.ui as ui
 import omni.appwindow
 from enum import Enum
 from pxr import UsdGeom, Gf, Usd
-import carb.input
-import carb.events
+from omni.kit.viewport.utility import get_active_viewport_window
 
 from .ruler_model import RulerModel
 from .mesh_raycast import MeshRaycast
@@ -48,7 +46,6 @@ class _ClickGesture(sc.ClickGesture):
             point = self.sender.gesture_payload.mouse
             point = self.__manipulator.click_ray(point)
             if point:
-                print(point)
                 model.add_point(point)
                 model.calculate_dist(model.points[0], model.points[-1])
                 self.__manipulator.invalidate() # Redraw the line
@@ -75,7 +72,7 @@ class RulerManipulator(sc.Manipulator):
         super().__init__(**kwargs)
         self.gestures = []
         self._tool = ToolType.DISABLED
-
+        self.viewport_window = get_active_viewport_window()
         self._usd_context = omni.usd.get_context()
         self._viewport = omni.kit.viewport_legacy.get_viewport_interface()
         self._mr = MeshRaycast()
@@ -97,17 +94,14 @@ class RulerManipulator(sc.Manipulator):
                 with sc.Transform(look_at=sc.Transform.LookAt.CAMERA):
                     with sc.Transform(scale_to=sc.Space.SCREEN):
                         with sc.Transform(transform=sc.Matrix44.get_translation_matrix(0,5,0)):
-                            sc.Label(f"{self.model.calculate_dist(points[i], points[i+1])}", alignment=ui.Alignment.CENTER_BOTTOM, size=20)
+                            sc.Label(f"{self.model.calculate_dist(points[i], points[i+1])} cm", alignment=ui.Alignment.CENTER_BOTTOM, size=20)
 
     def click_ray(self, position):
         pos = Gf.Vec3d(*position, 0)
-
-        view = self.scene_view.view
-        inv = view.get_inverse()
-        
-        cameraPos = Gf.Vec3d(inv[12], inv[13], inv[14])
-        
-        origin = cameraPos - pos
+        view_mat = self.scene_view.view # Get camera view matrix
+        inv = view_mat.get_inverse()    # Invert view matrix for world coords
+        api = self.viewport_window.viewport_api
+        origin = api.ndc_to_world.Transform(pos * 425)
 
         rayDist = 1000000000
         rayDir = Gf.Vec3d(inv[8], inv[9], inv[10])
@@ -134,7 +128,8 @@ class RulerManipulator(sc.Manipulator):
         if self.model.points:
             points = self.model.points
             if len(points) > 1:
-                sc.Curve(points, curve_type=sc.Curve.CurveType.LINEAR)
+                with sc.Transform(scale_to=sc.Space.WORLD):
+                    sc.Curve(points, curve_type=sc.Curve.CurveType.LINEAR)
 
     def set_tool(self, tool):
         # Toggle the tool on or off
