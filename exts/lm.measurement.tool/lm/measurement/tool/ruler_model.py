@@ -4,17 +4,39 @@ Stores details about the line
 
 from math import sqrt
 from omni.ui import scene as sc
+import omni.kit.viewport_legacy as vp
 
 class RulerModel(sc.AbstractManipulatorModel):
 
     # Absctract container class(es)
-    class ListItem(sc.AbstractManipulatorModel):
+    class ListItem(sc.AbstractManipulatorItem):
         def __init__(self, value=[]):
             self.value = value
 
     def __init__(self):
         super().__init__()
         self._points = RulerModel.ListItem()
+
+        self._viewport_window = vp.get_viewport_interface().get_viewport_window()
+        self._active = False
+
+    # Set up the tool when its enabled
+    def _start(self):
+        self._viewport_window.set_enabled_picking(False)
+
+    # Clean up the tool when its disabled
+    def _stop(self):
+        self._viewport_window.set_enabled_picking(True)
+
+    # Toggle the tool between active and inactive states
+    def set_active(self, active):
+        if self._active == active:
+            return
+        self._active = active
+        if active:
+            self._start()
+        else:
+            self._stop()
 
     # Find the distance between the two points
     def calculate_dist(self, startpoint, endpoint):
@@ -46,7 +68,7 @@ class RulerModel(sc.AbstractManipulatorModel):
     # Mutator methods
     def add_point(self, point):
         self.get_value(self.get_item('points')).append(point)
-        self._item_changed(self._points)
+        #self._item_changed(self._points)
 
     def clear_points(self):
         self.get_value(self.get_item('points')).clear()

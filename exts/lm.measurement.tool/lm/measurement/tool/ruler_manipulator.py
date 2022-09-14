@@ -133,10 +133,12 @@ class RulerManipulator(sc.Manipulator):
         # Toggle the tool on or off
         if self._tool.value > 0:
             self._tool = ToolType.DISABLED
+            self.model.set_active(False)
         else:
             if tool == "RULER":
                 self._tool = ToolType.RULER
-            if tool == "ANGLE":
-                self._tool = ToolType.ANGLE
+                self.model.set_active(True)
+            """if tool == "ANGLE":
+                self._tool = ToolType.ANGLE"""
 
         
