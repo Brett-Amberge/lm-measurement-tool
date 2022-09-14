@@ -47,7 +47,6 @@ class _ClickGesture(sc.ClickGesture):
             point = self.__manipulator.click_ray(point)
             if point:
                 model.add_point(point)
-                model.calculate_dist(model.points[0], model.points[-1])
                 self.__manipulator.invalidate() # Redraw the line
             else:
                 print("[lm.measurement.tool] No mesh at this point")
@@ -86,7 +85,7 @@ class RulerManipulator(sc.Manipulator):
 
         self._draw_shape()
 
-        points = self.model.points
+        points = self.model.get_value(self.model.get_item('points'))
         for i in range(len(points) - 1):
         # Position the distance labels above the center of the lines
             position = self.model.get_midpoint(points[i], points[i+1])
@@ -118,18 +117,17 @@ class RulerManipulator(sc.Manipulator):
 
     def on_model_updated(self, item):
         # Update the line based on the model
-        if self.model.points:
-            self._draw_shape()
+        self.invalidate()
+        self._draw_shape()
 
     def _draw_shape(self):
         # Draw the line based on the start and end point stored in the model
         if not self.model:
             return
-        if self.model.points:
-            points = self.model.points
-            if len(points) > 1:
-                with sc.Transform(scale_to=sc.Space.WORLD):
-                    sc.Curve(points, curve_type=sc.Curve.CurveType.LINEAR)
+        points = self.model.get_value(self.model.get_item('points'))
+        if len(points) > 1:
+            with sc.Transform(scale_to=sc.Space.WORLD):
+                sc.Curve(points, curve_type=sc.Curve.CurveType.LINEAR)
 
     def set_tool(self, tool):
         # Toggle the tool on or off
