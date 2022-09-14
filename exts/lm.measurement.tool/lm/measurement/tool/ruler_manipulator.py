@@ -100,7 +100,7 @@ class RulerManipulator(sc.Manipulator):
 
         # Unregister input events
         if self._input_sub_id is not None:
-            self._input.unsubscribe_to_input_evetns(self._input_sub_id)
+            self._input.unsubscribe_to_input_events(self._input_sub_id)
             self._input_sub_id = None
 
     # Toggle the tool between active and inactive states
