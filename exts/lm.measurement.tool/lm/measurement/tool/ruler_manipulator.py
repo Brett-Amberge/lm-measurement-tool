@@ -8,6 +8,7 @@ from omni.ui import color as cl
 import omni.kit
 import omni.ui as ui
 import omni.appwindow
+import omni.usd
 import carb
 import omni.kit.viewport_legacy as vp
 from enum import Enum
@@ -45,8 +46,7 @@ class _ClickGesture(sc.ClickGesture):
         if self.__manipulator._tool.value == 1: # Check if the ruler tool is enabled
             self._start = not self._start
             model = self.__manipulator.model
-            point = self.sender.gesture_payload.mouse
-            point = self.__manipulator.click_ray(point)
+            point = self.__manipulator.click_ray()
             if point:
                 model.add_point(point)
                 self.__manipulator.invalidate() # Redraw the line
@@ -74,7 +74,7 @@ class RulerManipulator(sc.Manipulator):
         self.gestures = []
         self._tool = ToolType.DISABLED
         self.viewport_window = get_active_viewport_window()
-        self._usd_context = omni.usd.get_context()
+        self._usd_context = self._get_context()
         self._viewport = omni.kit.viewport_legacy.get_viewport_interface()
         self._mr = MeshRaycast()
 
@@ -105,6 +105,91 @@ class RulerManipulator(sc.Manipulator):
         else:
             self._stop()
 
+    # Get the current USD context we are attached to
+    def _get_context(self) -> Usd.Stage:
+        return omni.usd.get_context()
+
+    # Process abstract input events
+    def _on_input_event(self, event, *_):
+        if event.deviceType == carb.input.DeviceType.MOUSE:
+            return self._on_global_mouse_event(event.event)
+        else:
+            return True
+
+    # Process any mouse events
+    def _on_global_mouse_event(self, event, *_):
+        if event.type == carb.input.MouseEventType.LEFT_BUTTON_DOWN:
+            x,y = self._get_position_in_viewport(event.normalized_coords)
+            if x is None or y is None:
+                return True
+
+            self._update_mouse_position(x, y)
+
+    def _update_mouse_position(self, x, y):
+        self.mx = x
+        self.my = y
+
+    # Get the relative mouse positoin within the acitve viewport
+    def _get_position_in_viewport(self, coords):
+        if coords.x < 0.0 or coords.x > 1.0 or coords.y < 0.0 or coords.y > 1.0:
+            return (None, None)
+
+        viewport_window = ui.Workspace.get_window('Viewport')
+        if not viewport_window:
+            return (None, None)
+
+        # In kit, there may be a tab bar
+        tab_bar_height = 22 if viewport_window.dock_tab_bar_visible else 0
+
+        # Dock splitter is different between kit and view
+        window_title = carb.settings.get_settings().get("/app/window/title")
+        if window_title is not None and window_title == "Omniverse View":
+            dock_splitter_size = 0
+        else:
+            dock_splitter_size = 4
+
+        # Remove dock splitter and tab bar from viewport window size
+        width = viewport_window.width - dock_splitter_size * 2
+        height = viewport_window.height - dock_splitter_size * 2 - tab_bar_height
+
+        # Get screen position relative to the main window
+        x = coords.x * width + viewport_window.position_x + dock_splitter_size
+        y = coords.y * height + viewport_window.position_y + dock_splitter_size + tab_bar_height
+
+        # Get valid viewport texture area
+        rect = self._viewport_window.get_viewport_rect()
+
+        rect_w = float(rect[2] - rect[0])
+        rect_h = float(rect[3] - rect[1])
+        if rect_w / rect_h > width / height:
+            rect_h = rect_h / rect_w * width
+            rect_w = width
+            h_diff = (height - rect_h) * 0.5
+            rect = [0, h_diff, width, height - h_diff]
+        else:
+            rect_w = rect_w / rect_h * height + dock_splitter_size * 2
+            rect_h = height
+            w_diff = (width - rect_w)  * 0.5
+            rect= [w_diff, 0, width - w_diff, height]
+
+        x = coords.x * width
+        y = coords.y * height
+
+        if x < rect[0] or y < rect[1] or x > rect[2] or y > rect[3]:
+            return (None, None)
+
+        mx = (x - rect[0]) / (rect[3] - rect[0])
+        my = (y - rect[1]) / (rect[3] - rect[1])
+        mx = mx * 2.0 - 1.0
+        my = -(my * 2.0 - 1.0)
+
+        return (mx, my)
+
+    # Return click position as a tuple
+    def get_mouse_pos(self):
+        return (self.mx, self.my)
+
+
     def on_build(self):
         if not self.model:
             self.model = RulerModel()
@@ -124,12 +209,15 @@ class RulerManipulator(sc.Manipulator):
                         with sc.Transform(transform=sc.Matrix44.get_translation_matrix(0,5,0)):
                             sc.Label(f"{self.model.calculate_dist(points[i], points[i+1])} cm", alignment=ui.Alignment.CENTER_BOTTOM, size=20)
 
-    def click_ray(self, position):
-        pos = Gf.Vec3d(*position, 0)
+    def click_ray(self):
+        pos = self.get_mouse_pos()
+        position = (*pos, 0)
+
         view_mat = self.scene_view.view # Get camera view matrix
         inv = view_mat.get_inverse()    # Invert view matrix for world coords
+
         api = self.viewport_window.viewport_api
-        origin = api.ndc_to_world.Transform(pos * 425)
+        origin = api.ndc_to_world.Transform(position)
 
         rayDist = 1000000000
         rayDir = Gf.Vec3d(inv[8], inv[9], inv[10])
