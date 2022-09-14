@@ -8,6 +8,8 @@ from omni.ui import color as cl
 import omni.kit
 import omni.ui as ui
 import omni.appwindow
+import carb
+import omni.kit.viewport_legacy as vp
 from enum import Enum
 from pxr import UsdGeom, Gf, Usd
 from omni.kit.viewport.utility import get_active_viewport_window
@@ -76,6 +78,33 @@ class RulerManipulator(sc.Manipulator):
         self._viewport = omni.kit.viewport_legacy.get_viewport_interface()
         self._mr = MeshRaycast()
 
+        self._viewport_window = vp.get_viewport_interface().get_viewport_window()
+        self._active = False
+
+        self._input = carb.input.acquire_input_interface()
+        self._input_sub_id = None
+
+        self.mx = 0
+        self.my = 0
+
+    # Set up the tool when its enabled
+    def _start(self):
+        self._viewport_window.set_enabled_picking(False)
+
+    # Clean up the tool when its disabled
+    def _stop(self):
+        self._viewport_window.set_enabled_picking(True)
+
+    # Toggle the tool between active and inactive states
+    def set_active(self, active):
+        if self._active == active:
+            return
+        self._active = active
+        if active:
+            self._start()
+        else:
+            self._stop()
+
     def on_build(self):
         if not self.model:
             self.model = RulerModel()
@@ -126,18 +155,17 @@ class RulerManipulator(sc.Manipulator):
             return
         points = self.model.get_value(self.model.get_item('points'))
         if len(points) > 1:
-            with sc.Transform(scale_to=sc.Space.WORLD):
-                sc.Curve(points, curve_type=sc.Curve.CurveType.LINEAR)
+            sc.Curve(points, curve_type=sc.Curve.CurveType.LINEAR)
 
     def set_tool(self, tool):
         # Toggle the tool on or off
         if self._tool.value > 0:
             self._tool = ToolType.DISABLED
-            self.model.set_active(False)
+            self.set_active(False)
         else:
             if tool == "RULER":
                 self._tool = ToolType.RULER
-                self.model.set_active(True)
+                self.set_active(True)
             """if tool == "ANGLE":
                 self._tool = ToolType.ANGLE"""
 
