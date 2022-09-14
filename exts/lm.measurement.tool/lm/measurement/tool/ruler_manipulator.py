@@ -6,7 +6,6 @@ import weakref
 from omni.ui import scene as sc
 from omni.ui import color as cl
 import omni.kit
-import omni.ui as ui
 import omni.appwindow
 import omni.usd
 import carb
@@ -14,6 +13,7 @@ import omni.kit.viewport_legacy as vp
 from enum import Enum
 from pxr import UsdGeom, Gf, Usd
 from omni.kit.viewport.utility import get_active_viewport_window
+from omni import ui
 
 from .ruler_model import RulerModel
 from .mesh_raycast import MeshRaycast
@@ -91,9 +91,17 @@ class RulerManipulator(sc.Manipulator):
     def _start(self):
         self._viewport_window.set_enabled_picking(False)
 
+        # Register input events
+        self._input_sub_id = self._input.subscribe_to_input_events(self._on_input_event, order=-10000)
+
     # Clean up the tool when its disabled
     def _stop(self):
         self._viewport_window.set_enabled_picking(True)
+
+        # Unregister input events
+        if self._input_sub_id is not None:
+            self._input.unsubscribe_to_input_evetns(self._input_sub_id)
+            self._input_sub_id = None
 
     # Toggle the tool between active and inactive states
     def set_active(self, active):
@@ -134,7 +142,7 @@ class RulerManipulator(sc.Manipulator):
         if coords.x < 0.0 or coords.x > 1.0 or coords.y < 0.0 or coords.y > 1.0:
             return (None, None)
 
-        viewport_window = ui.Workspace.get_window('Viewport')
+        viewport_window = ui.Workspace.get_window("Viewport")
         if not viewport_window:
             return (None, None)
 
@@ -169,7 +177,7 @@ class RulerManipulator(sc.Manipulator):
         else:
             rect_w = rect_w / rect_h * height + dock_splitter_size * 2
             rect_h = height
-            w_diff = (width - rect_w)  * 0.5
+            w_diff = (width - rect_w) * 0.5
             rect= [w_diff, 0, width - w_diff, height]
 
         x = coords.x * width
@@ -178,7 +186,7 @@ class RulerManipulator(sc.Manipulator):
         if x < rect[0] or y < rect[1] or x > rect[2] or y > rect[3]:
             return (None, None)
 
-        mx = (x - rect[0]) / (rect[3] - rect[0])
+        mx = (x - rect[0]) / (rect[2] - rect[0])
         my = (y - rect[1]) / (rect[3] - rect[1])
         mx = mx * 2.0 - 1.0
         my = -(my * 2.0 - 1.0)
@@ -189,7 +197,7 @@ class RulerManipulator(sc.Manipulator):
     def get_mouse_pos(self):
         return (self.mx, self.my)
 
-
+    # Called whenever the model is updated
     def on_build(self):
         if not self.model:
             self.model = RulerModel()
@@ -212,6 +220,7 @@ class RulerManipulator(sc.Manipulator):
     def click_ray(self):
         pos = self.get_mouse_pos()
         position = (*pos, 0)
+        print(position)
 
         view_mat = self.scene_view.view # Get camera view matrix
         inv = view_mat.get_inverse()    # Invert view matrix for world coords
@@ -235,18 +244,17 @@ class RulerManipulator(sc.Manipulator):
     def on_model_updated(self, item):
         # Update the line based on the model
         self.invalidate()
-        self._draw_shape()
 
+    # Draw the line based on the start and end point stored in the model
     def _draw_shape(self):
-        # Draw the line based on the start and end point stored in the model
         if not self.model:
             return
         points = self.model.get_value(self.model.get_item('points'))
         if len(points) > 1:
             sc.Curve(points, curve_type=sc.Curve.CurveType.LINEAR)
 
+    # Toggle the tool on or off using input from toolbar buttons
     def set_tool(self, tool):
-        # Toggle the tool on or off
         if self._tool.value > 0:
             self._tool = ToolType.DISABLED
             self.set_active(False)
