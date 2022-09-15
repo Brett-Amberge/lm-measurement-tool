@@ -1,3 +1,4 @@
+[package]
 # Icon to show in the extension manager
 icon = "./icons/ruler_icon.png"
 
