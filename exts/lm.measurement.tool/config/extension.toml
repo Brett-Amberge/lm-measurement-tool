@@ -4,6 +4,19 @@ icon = "./icons/ruler_icon.png"
 # Preview image to show in the extension manager
 preview_image = ""
 
+title = "3D Viewport measurement tool"
+description = "A tool for measuring the size and distance of meshes in 3D space."
+
+# Path to the readme markdown file
+readme = "../../README.md"
+
+# URL of the extension source repository.
+repository = "https://github.com/Brett-Amberge/lm-measurement-tool"
+
+category = "Measurement"
+
+keywords = ["kit", "measurement", "scene"]
+
 # Addiditional dependencies
 [dependencies]
 "omni.kit.uiapp" = {}
