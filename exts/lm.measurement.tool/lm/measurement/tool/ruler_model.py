@@ -1,5 +1,6 @@
 '''
-Stores details about the line
+Stores start and end point positions of measurement lines.
+Handles calcuation of distance for measurement objects.
 '''
 
 from math import sqrt
@@ -12,12 +13,14 @@ class RulerModel(sc.AbstractManipulatorModel):
         def __init__(self, value=[]):
             self.value = value
 
+    # Constructor
     def __init__(self):
         super().__init__()
         self._points = RulerModel.ListItem()
 
-    # Find the distance between the two points
+    # Find the distance between any two points
     def calculate_dist(self, startpoint, endpoint):
+        # Flatten the points
         x1,y1,z1 = startpoint
         x2,y2,z2 = endpoint
 
@@ -25,8 +28,9 @@ class RulerModel(sc.AbstractManipulatorModel):
 
         return distance
     
-    # Find the midpoint between the two points
+    # Find the midpoint between any two points, used to position the label
     def get_midpoint(self, startpoint, endpoint):     
+        # Flatten the points
         x1,y1,z1 = startpoint
         x2,y2,z2 = endpoint
 
@@ -34,7 +38,7 @@ class RulerModel(sc.AbstractManipulatorModel):
 
         return midpoint
 
-    # Accessor methods
+    # Accessor methods for private values
     def get_item(self, item):
         if item == 'points':
             return self._points
@@ -43,13 +47,13 @@ class RulerModel(sc.AbstractManipulatorModel):
         if item == self._points:
             return self._points.value
 
-    # Mutator methods
+    # Mutator methods for private values
     def add_point(self, point):
         self.get_value(self.get_item('points')).append(point)
-        #self._item_changed(self._points)
+        self._item_changed(self._points)
 
     def clear_points(self):
         self.get_value(self.get_item('points')).clear()
-        #self._item_changed(self._points)
+        self._item_changed(self._points)
         
 

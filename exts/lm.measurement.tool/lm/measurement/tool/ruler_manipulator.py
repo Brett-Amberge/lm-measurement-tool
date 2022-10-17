@@ -1,5 +1,6 @@
 '''
-Update the view and model when user input occurs
+Set up the gestures in the viewport and update the model when one occurs.
+Draws the ruler in the scene based on the model.
 '''
 
 import weakref
@@ -18,11 +19,13 @@ from omni import ui
 from .ruler_model import RulerModel
 from .mesh_raycast import MeshRaycast
 
+# What tool is currently active
 class ToolType(Enum):
     DISABLED = 0
     RULER = 1
     ANGLE = 2
 
+# Gesture manager to give precendence to certain gestures
 class Manager(sc.GestureManager):
     def __init__(self):
         super().__init__()
@@ -33,6 +36,7 @@ class Manager(sc.GestureManager):
 
 mgr = Manager()
 
+# Left click gesture to start measurement
 class _ClickGesture(sc.ClickGesture):
     def __init__(self, manipulator: sc.Manipulator, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -48,11 +52,13 @@ class _ClickGesture(sc.ClickGesture):
             model = self.__manipulator.model
             point = self.__manipulator.click_ray()
             if point:
+                print(point)
                 model.add_point(point)
                 self.__manipulator.invalidate() # Redraw the line
             else:
                 print("[lm.measurement.tool] No mesh at this point")
 
+# Double click gesture to clear any active measurements
 class _DoubleClickGesture(sc.DoubleClickGesture):
     def __init__(self, manipulator, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -67,20 +73,26 @@ class _DoubleClickGesture(sc.DoubleClickGesture):
             model.clear_points()
             self.__manipulator.invalidate()
 
+# Ruler Manipulator class, add the gestures to the screen and draw measurement lines from the model, if any
 class RulerManipulator(sc.Manipulator):
 
+    # Constructor
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.gestures = []
-        self._tool = ToolType.DISABLED
-        self.viewport_window = get_active_viewport_window()
-        self._usd_context = self._get_context()
-        self._viewport = omni.kit.viewport_legacy.get_viewport_interface()
-        self._mr = MeshRaycast()
 
-        self._viewport_window = vp.get_viewport_interface().get_viewport_window()
+        self.gestures = []
+
+        self._tool = ToolType.DISABLED
         self._active = False
 
+        self._viewport = omni.kit.viewport_legacy.get_viewport_interface()
+        self._mr = MeshRaycast()
+        self.viewport_window = get_active_viewport_window()
+        self._viewport_window = self._viewport.get_viewport_window()
+        
+        self._usd_context = self._get_context()
+
+        # Set up a carb input interface to listen for mouse events
         self._input = carb.input.acquire_input_interface()
         self._input_sub_id = None
 
@@ -89,6 +101,7 @@ class RulerManipulator(sc.Manipulator):
 
     # Set up the tool when its enabled
     def _start(self):
+        # Disable object selection in the viewport
         self._viewport_window.set_enabled_picking(False)
 
         # Register input events
@@ -96,7 +109,12 @@ class RulerManipulator(sc.Manipulator):
 
     # Clean up the tool when its disabled
     def _stop(self):
+        # Re-enable object selection in the viewport
         self._viewport_window.set_enabled_picking(True)
+
+        # Clear out the model and start anew
+        self.model.clear_points()
+        self.invalidate()
 
         # Unregister input events
         if self._input_sub_id is not None:
@@ -119,6 +137,7 @@ class RulerManipulator(sc.Manipulator):
 
     # Process abstract input events
     def _on_input_event(self, event, *_):
+        # Listen for mouse events, return on anything else
         if event.deviceType == carb.input.DeviceType.MOUSE:
             return self._on_global_mouse_event(event.event)
         else:
@@ -126,23 +145,26 @@ class RulerManipulator(sc.Manipulator):
 
     # Process any mouse events
     def _on_global_mouse_event(self, event, *_):
+        # Get the screen position of a left click event
         if event.type == carb.input.MouseEventType.LEFT_BUTTON_DOWN:
+            # Return the x,y coords as normalized coords between 0 and 1
             x,y = self._get_position_in_viewport(event.normalized_coords)
             if x is None or y is None:
                 return True
 
             self._update_mouse_position(x, y)
 
+    # Update mouse position variables
     def _update_mouse_position(self, x, y):
         self.mx = x
         self.my = y
 
-    # Get the relative mouse positoin within the acitve viewport
+    # Get the relative mouse position within the acitve viewport
     def _get_position_in_viewport(self, coords):
         if coords.x < 0.0 or coords.x > 1.0 or coords.y < 0.0 or coords.y > 1.0:
             return (None, None)
 
-        viewport_window = ui.Workspace.get_window("Viewport")
+        viewport_window = self._viewport_window
         if not viewport_window:
             return (None, None)
 
@@ -167,6 +189,7 @@ class RulerManipulator(sc.Manipulator):
         # Get valid viewport texture area
         rect = self._viewport_window.get_viewport_rect()
 
+        # Calculate the dimensions of the viewport rectangle
         rect_w = float(rect[2] - rect[0])
         rect_h = float(rect[3] - rect[1])
         if rect_w / rect_h > width / height:
@@ -180,12 +203,15 @@ class RulerManipulator(sc.Manipulator):
             w_diff = (width - rect_w) * 0.5
             rect= [w_diff, 0, width - w_diff, height]
 
+        # Calculate relative x,y position based on screen size
         x = coords.x * width
         y = coords.y * height
 
+        # Return if relative x,y is outside of viewport rectangle
         if x < rect[0] or y < rect[1] or x > rect[2] or y > rect[3]:
             return (None, None)
 
+        # Calculate mouse position in viewport rectangle
         mx = (x - rect[0]) / (rect[2] - rect[0])
         my = (y - rect[1]) / (rect[3] - rect[1])
         mx = mx * 2.0 - 1.0
@@ -197,16 +223,21 @@ class RulerManipulator(sc.Manipulator):
     def get_mouse_pos(self):
         return (self.mx, self.my)
 
-    # Called whenever the model is updated
+    # Called when the manipulator is constructed or invalidated by a model update.
+    # Sets up any screen gestures and draws measurements lines if any exist.
     def on_build(self):
+
+        # Create a new model if one does not already exist
         if not self.model:
             self.model = RulerModel()
 
         # Set the gesture(s) on the screen
         sc.Screen(gestures=self.gestures or [_ClickGesture(weakref.proxy(self)), _DoubleClickGesture(weakref.proxy(self))])
 
+        # Draw the measurement lines
         self._draw_shape()
 
+        # Set up labels above the lines to show the distance between the two endpoints
         points = self.model.get_value(self.model.get_item('points'))
         for i in range(len(points) - 1):
         # Position the distance labels above the center of the lines
@@ -217,23 +248,46 @@ class RulerManipulator(sc.Manipulator):
                         with sc.Transform(transform=sc.Matrix44.get_translation_matrix(0,5,0)):
                             sc.Label(f"{self.model.calculate_dist(points[i], points[i+1])} cm", alignment=ui.Alignment.CENTER_BOTTOM, size=20)
 
+    # Method called when a click event occurs.
+    # Creates a new measurement line point based on raycast from mouse click to nearest object in the scene.
+    # TODO Ensure the mouse coordinates and measurement lines are accurate to world space
     def click_ray(self):
         pos = self.get_mouse_pos()
-        position = (*pos, 0)
-        print(position)
+        #api = self.viewport_window.viewport_api
 
-        view_mat = self.scene_view.view # Get camera view matrix
-        inv = view_mat.get_inverse()    # Invert view matrix for world coords
+        model = self.scene_view.model   # Get the current camera model
+        proj = model.projection         # Get camera projection matrix
+        invProj = proj.get_inverse()    # Invert projection matrix for camera coords
+        view = model.view               # Get camera view matrix
+        invView = view.get_inverse()    # Invert view matrix for world coords
 
-        api = self.viewport_window.viewport_api
-        origin = api.ndc_to_world.Transform(position)
+        # Get the position of the camera in world coordinates
+        worldCam = Gf.Vec4d(invView[12], invView[13], invView[14], 1)
 
-        rayDist = 1000000000
-        rayDir = Gf.Vec3d(inv[8], inv[9], inv[10])
+        # Convert the mouse click to homogeneous coords
+        position = Gf.Vec4d(pos[0] * worldCam[2], pos[1] * worldCam[2], 1, 1)
+
+        # Convert to Gf matrices to make the math easier
+        p = Gf.Matrix4d(*invProj)
+        v = Gf.Matrix4d(*invView)
+
+        camPos = position * p           # Convert the position to homogeneous camera coords
+        wrldPos = camPos * v            # Convert from homogeneous camera to homogeneous world
+        print(wrldPos)
+        # Divide by w to get the position in world coordinates
+        origin = (wrldPos[0] + worldCam[0], wrldPos[1] + worldCam[1], wrldPos[2] + worldCam[2])
+        print(origin)
+
+        # Find the camera's forward vector
+        camFor = Gf.Vec3d(invView[8], invView[9], invView[10])
+
+        rayDist = 1000000000            # Pew pew
         # get_inverse returns the forward vector in eye coords, need to flip it to face forward
-        hit = self._mr.raycast_closest(origin, -rayDir, rayDist)
+        # Fire a ray from the mouse to look for intersection with any scene objects
+        hit = self._mr.raycast_closest(origin, -camFor, rayDist)
         hit_pos = False
         if hit["hit"]:
+            # If the ray intersects with an object, store the position of the intersection in world coords
             print("[lm.measurement.tool] Hit!")
             dist = hit.get("distance", 1.0)
             if dist > 0:
@@ -241,19 +295,22 @@ class RulerManipulator(sc.Manipulator):
 
         return hit_pos
 
+    # Called when a value in the model is changed and _item_changed is called
     def on_model_updated(self, item):
         # Update the line based on the model
         self.invalidate()
 
-    # Draw the line based on the start and end point stored in the model
+    # Draw the line based on any points stored in the model
     def _draw_shape(self):
         if not self.model:
             return
         points = self.model.get_value(self.model.get_item('points'))
         if len(points) > 1:
+            # Curve allows for more than one active measurement at a time
             sc.Curve(points, curve_type=sc.Curve.CurveType.LINEAR)
 
     # Toggle the tool on or off using input from toolbar buttons
+    # TODO Make tool states exclusive (i.e. only line or angle measure active at a time, not both at once)
     def set_tool(self, tool):
         if self._tool.value > 0:
             self._tool = ToolType.DISABLED

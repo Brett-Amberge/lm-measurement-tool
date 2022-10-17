@@ -1,6 +1,7 @@
-'''
-Main extension file
-'''
+"""
+Main extension file.
+This is the file that Omniverse searchs for when first launching the extension.
+"""
 
 import os
 import omni.ext 
@@ -12,9 +13,11 @@ from .viewport_scene import ViewportScene, MeasurementToolGroup
 
 class MeasurementTool(omni.ext.IExt):
 
+    # Constructor
     def __init__(self):
         self._viewport_scene = None
 
+    # Called by Omniverse when the extension is first launched
     def on_startup(self, ext_id):
         print("[lm.measurement.tool] Measurement tool startup")
 
